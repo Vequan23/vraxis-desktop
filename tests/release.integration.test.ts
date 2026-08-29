@@ -8,7 +8,7 @@ import { inspectDesktopConfig } from "../src/validate.js";
 describe("macOS release artifacts", () => {
   it("disables Chromium's sandbox only for Linux CI smoke tests", () => {
     expect(smokeTestLaunchArgs("linux", "true")).toEqual(["--no-sandbox"]);
-    expect(smokeTestLaunchArgs("linux", undefined)).toEqual([]);
+    expect(smokeTestLaunchArgs("linux", "false")).toEqual([]);
     expect(smokeTestLaunchArgs("darwin", "true")).toEqual([]);
     expect(smokeTestLaunchArgs("win32", "true")).toEqual([]);
   });
