@@ -2,7 +2,7 @@ import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createMacRelease, smokeTestLaunchArgs } from "../src/release.js";
+import { createMacRelease, smokeTestLaunchArgs, smokeTestTimeout } from "../src/release.js";
 import { inspectDesktopConfig } from "../src/validate.js";
 
 describe("macOS release artifacts", () => {
@@ -11,6 +11,19 @@ describe("macOS release artifacts", () => {
     expect(smokeTestLaunchArgs("linux", "false")).toEqual([]);
     expect(smokeTestLaunchArgs("darwin", "true")).toEqual([]);
     expect(smokeTestLaunchArgs("win32", "true")).toEqual([]);
+  });
+
+  it("gives a bundled service its readiness budget before a smoke timeout", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vraxis-desktop-timeout-"));
+    const service = join(root, "service");
+    await mkdir(service);
+    await writeFile(join(service, "server.mjs"), "console.log('ready')");
+    const inspected = await inspectDesktopConfig({
+      schemaVersion: 1,
+      app: { id: "timeout-test", name: "Timeout Test", version: "1.0.0" },
+      source: { kind: "service", bundle: { directory: "service", entry: "server.mjs" }, url: "http://127.0.0.1:{port}", readyTimeoutMs: 45_000 },
+    }, join(root, "vraxis.desktop.config.mjs"));
+    expect(smokeTestTimeout(inspected.config!)).toBe(75_000);
   });
 
   it.runIf(process.platform === "darwin")("creates an unsigned disk image, checksum, and release manifest", async () => {

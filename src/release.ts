@@ -30,7 +30,7 @@ export async function testPackagedDesktopApp(config: ResolvedDesktopConfig, opti
   const platform = options.platform ?? process.platform as "darwin" | "win32" | "linux";
   const [output] = await packageDesktopApp(config, options);
   if (!output) throw new Error("Electron Packager did not return an application path.");
-  await smokeTestPackagedApp(output, config, platform);
+  await smokeTestPackagedApp(output, config, platform, smokeTestTimeout(config));
   return output;
 }
 
@@ -41,7 +41,7 @@ export async function createMacRelease(config: ResolvedDesktopConfig, options: M
   const [packageRoot] = await packageDesktopApp(config, { platform: "darwin", arch, ...(options.signing ? { signing: options.signing } : {}) });
   if (!packageRoot) throw new Error("Electron Packager did not return an application path.");
   const appPath = await findMacApplication(packageRoot);
-  if (options.smokeTest !== false) await smokeTestPackagedApp(packageRoot, config, "darwin");
+  if (options.smokeTest !== false) await smokeTestPackagedApp(packageRoot, config, "darwin", smokeTestTimeout(config));
 
   const outputDirectory = resolve(config.projectDirectory, config.packaging?.outputDirectory ?? "out");
   const fileName = `${config.app.id}-${config.app.version}-darwin-${arch}.dmg`;
@@ -104,8 +104,13 @@ export async function smokeTestPackagedApp(packageRoot: string, config: Resolved
       if (code === 0 && output.includes("[desktop:smoke]")) finish();
       else finish(new Error(`The packaged app failed its smoke test.${output.trim() ? `\n${output.trim()}` : ""}`));
     });
-    const timer = setTimeout(() => finish(new Error(`The packaged app did not finish its smoke test within ${timeoutMs}ms.`)), timeoutMs);
+    const timer = setTimeout(() => finish(new Error(`The packaged app did not finish its smoke test within ${timeoutMs}ms.${output.trim() ? `\n${output.trim()}` : ""}`)), timeoutMs);
   });
+}
+
+export function smokeTestTimeout(config: ResolvedDesktopConfig): number {
+  if (config.source.kind !== "service") return 30_000;
+  return (config.source.readyTimeoutMs ?? 30_000) + 30_000;
 }
 
 export function smokeTestLaunchArgs(platform: "darwin" | "win32" | "linux", ci = process.env.CI): readonly string[] {
