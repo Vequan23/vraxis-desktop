@@ -2,10 +2,17 @@ import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createMacRelease } from "../src/release.js";
+import { createMacRelease, smokeTestLaunchArgs } from "../src/release.js";
 import { inspectDesktopConfig } from "../src/validate.js";
 
 describe("macOS release artifacts", () => {
+  it("disables Chromium's sandbox only for Linux CI smoke tests", () => {
+    expect(smokeTestLaunchArgs("linux", "true")).toEqual(["--no-sandbox"]);
+    expect(smokeTestLaunchArgs("linux", undefined)).toEqual([]);
+    expect(smokeTestLaunchArgs("darwin", "true")).toEqual([]);
+    expect(smokeTestLaunchArgs("win32", "true")).toEqual([]);
+  });
+
   it.runIf(process.platform === "darwin")("creates an unsigned disk image, checksum, and release manifest", async () => {
     const root = await mkdtemp(join(tmpdir(), "vraxis-desktop-release-"));
     const site = join(root, "site");

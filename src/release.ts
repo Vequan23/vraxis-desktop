@@ -87,7 +87,7 @@ export async function smokeTestPackagedApp(packageRoot: string, config: Resolved
       ? resolve(packageRoot, `${config.app.id}.exe`)
       : resolve(packageRoot, config.app.id);
   await new Promise<void>((resolveTest, reject) => {
-    const child = spawn(executable, [], { env: { ...process.env, VRAXIS_DESKTOP_SMOKE: "1" }, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(executable, smokeTestLaunchArgs(platform), { env: { ...process.env, VRAXIS_DESKTOP_SMOKE: "1" }, stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     let settled = false;
     const finish = (error?: Error) => {
@@ -106,6 +106,10 @@ export async function smokeTestPackagedApp(packageRoot: string, config: Resolved
     });
     const timer = setTimeout(() => finish(new Error(`The packaged app did not finish its smoke test within ${timeoutMs}ms.`)), timeoutMs);
   });
+}
+
+export function smokeTestLaunchArgs(platform: "darwin" | "win32" | "linux", ci = process.env.CI): readonly string[] {
+  return platform === "linux" && ci === "true" ? ["--no-sandbox"] : [];
 }
 
 async function findMacApplication(packageRoot: string): Promise<string> {
