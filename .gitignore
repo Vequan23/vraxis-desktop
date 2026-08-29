@@ -1,0 +1,12 @@
+node_modules/
+dist/
+out/
+examples/**/out/
+*.tgz
+.env
+.env.*
+!.env.example
+*.key
+*.p12
+*.pfx
+.DS_Store

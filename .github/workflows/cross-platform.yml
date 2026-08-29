@@ -1,0 +1,65 @@
+name: Cross-platform desktop
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-product-smoke:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Check out Vraxis Desktop
+        uses: actions/checkout@v4
+        with:
+          path: vraxis-desktop
+
+      - name: Check out Vraxis Read
+        uses: actions/checkout@v4
+        with:
+          repository: Vequan23/vraxis-read
+          path: vraxis-read
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            vraxis-desktop/package-lock.json
+            vraxis-read/package-lock.json
+
+      - name: Install Linux display tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes xvfb
+
+      - name: Install Vraxis Desktop
+        run: npm ci
+        working-directory: vraxis-desktop
+
+      - name: Install Vraxis Read
+        run: npm ci
+        working-directory: vraxis-read
+
+      - name: Check Vraxis Desktop
+        run: npm run check
+        working-directory: vraxis-desktop
+
+      - name: Check Vraxis Read
+        run: npm run check
+        working-directory: vraxis-read
+
+      - name: Test the exact packed products
+        run: npm run test:vraxis-read
+        working-directory: vraxis-desktop

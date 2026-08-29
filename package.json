@@ -1,0 +1,61 @@
+{
+  "name": "@vraxis/desktop",
+  "version": "0.1.0",
+  "description": "Turn trusted web apps into secure desktop applications.",
+  "keywords": [
+    "desktop",
+    "electron",
+    "local-first",
+    "packaging",
+    "vraxis"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vequan23/vraxis-desktop.git"
+  },
+  "homepage": "https://github.com/Vequan23/vraxis-desktop#readme",
+  "bugs": {
+    "url": "https://github.com/Vequan23/vraxis-desktop/issues"
+  },
+  "type": "module",
+  "bin": {
+    "vraxis-desktop": "bin/vraxis-desktop.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-runtime-assets.mjs",
+    "test": "npm run build && vitest run --maxWorkers=1",
+    "test:vraxis-read": "node scripts/test-vraxis-read-candidate.mjs ../vraxis-read",
+    "check": "npm run test && npm pack --dry-run",
+    "dev": "tsx src/cli.ts",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@electron/notarize": "^3.1.1",
+    "@electron/packager": "^20.3.0",
+    "electron": "^44.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
