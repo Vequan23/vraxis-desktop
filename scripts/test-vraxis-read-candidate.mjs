@@ -27,7 +27,7 @@ try {
   await runNpm(["install", "--no-audit", "--no-fund", desktopArchive], consumerDirectory);
   await writeFile(join(consumerDirectory, "vraxis.desktop.config.mjs"), `export default ${JSON.stringify({
     schemaVersion: 1,
-    app: { id: "vraxis-read-smoke", name: "Vraxis Read Smoke", version: "0.0.0", bundleId: "io.vraxis.read-smoke" },
+    app: { id: "vraxis-read-smoke", name: "Vraxis Read Smoke", author: "Vraxis", version: "0.0.0", bundleId: "io.vraxis.read-smoke" },
     source: {
       kind: "service",
       authentication: "desktop-token",

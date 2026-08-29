@@ -37,6 +37,7 @@ export interface DesktopConfig {
   app: {
     id: string;
     name: string;
+    author?: string;
     version?: string;
     description?: string;
     bundleId?: string;

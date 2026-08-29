@@ -5,6 +5,11 @@ import { describe, expect, it } from "vitest";
 import { inspectDesktopConfig, validateDesktopConfig } from "../src/validate.js";
 
 describe("desktop configuration", () => {
+  it("rejects an empty app author", () => {
+    expect(validateDesktopConfig({ schemaVersion: 1, app: { id: "docs", name: "Docs", author: "" }, source: { kind: "remote", url: "https://example.com" } }))
+      .toContainEqual({ path: "app.author", message: "Add the person or organization that publishes the app." });
+  });
+
   it("accepts a secure hosted application", () => {
     expect(validateDesktopConfig({
       schemaVersion: 1,

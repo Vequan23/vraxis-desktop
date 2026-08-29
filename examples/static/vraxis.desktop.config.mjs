@@ -5,6 +5,7 @@ export default defineDesktopApp({
   app: {
     id: "vraxis-desktop-example",
     name: "Vraxis Desktop Example",
+    author: "Vraxis",
     version: "0.1.0",
     bundleId: "io.vraxis.desktop-example",
   },

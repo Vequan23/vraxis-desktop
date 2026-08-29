@@ -5,6 +5,7 @@ export default defineDesktopApp({
   app: {
     id: "vraxis-read",
     name: "Vraxis Read",
+    author: "Vraxis",
     version: "0.4.4",
     description: "A local-first technical reader.",
     bundleId: "io.vraxis.read",

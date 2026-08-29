@@ -24,6 +24,7 @@ export function validateDesktopConfig(value: unknown): readonly ConfigIssue[] {
   else {
     if (typeof app.id !== "string" || !idPattern.test(app.id)) issue(issues, "app.id", "Use lowercase words separated by hyphens.");
     if (typeof app.name !== "string" || !app.name.trim()) issue(issues, "app.name", "Add the name people will see.");
+    if (app.author !== undefined && (typeof app.author !== "string" || !app.author.trim())) issue(issues, "app.author", "Add the person or organization that publishes the app.");
     if (app.description !== undefined && typeof app.description !== "string") issue(issues, "app.description", "Use plain text for the app description.");
     if (app.version !== undefined && (typeof app.version !== "string" || !/^\d+\.\d+\.\d+(?:[-+].+)?$/.test(app.version))) issue(issues, "app.version", "Use a semantic version such as 1.0.0.");
     if (app.bundleId !== undefined && (typeof app.bundleId !== "string" || !bundlePattern.test(app.bundleId))) issue(issues, "app.bundleId", "Use a reverse-domain identifier such as io.vraxis.read.");

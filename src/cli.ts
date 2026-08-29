@@ -102,7 +102,7 @@ function launchElectron(configPath: string): Promise<number> {
 
 async function initConfig(path: string): Promise<number> {
   try { await access(path); console.error(`${path} already exists.`); return 1; } catch { /* create it */ }
-  const template = `import { defineDesktopApp } from "@vraxis/desktop";\n\nexport default defineDesktopApp({\n  schemaVersion: 1,\n  app: { id: "my-app", name: "My App", bundleId: "io.example.my-app" },\n  source: { kind: "remote", url: "https://example.com" },\n  branding: { icon: "./assets/icon.png" },\n  window: { width: 1200, height: 800 },\n  security: { externalLinks: "browser" },\n});\n`;
+  const template = `import { defineDesktopApp } from "@vraxis/desktop";\n\nexport default defineDesktopApp({\n  schemaVersion: 1,\n  app: { id: "my-app", name: "My App", author: "Your company", bundleId: "io.example.my-app" },\n  source: { kind: "remote", url: "https://example.com" },\n  branding: { icon: "./assets/icon.png" },\n  window: { width: 1200, height: 800 },\n  security: { externalLinks: "browser" },\n});\n`;
   await writeFile(path, template, { flag: "wx" });
   console.log(`Created ${path}`);
   return 0;

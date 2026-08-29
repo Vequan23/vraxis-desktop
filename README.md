@@ -41,6 +41,7 @@ export default defineDesktopApp({
   app: {
     id: "my-app",
     name: "My App",
+    author: "Your company",
     bundleId: "io.example.my-app",
   },
   source: {
@@ -82,7 +83,7 @@ export default defineDesktopApp({
 });
 ```
 
-When `app.version` is missing, Vraxis Desktop reads it from the nearest `package.json`.
+When `app.version` is missing, Vraxis Desktop reads it from the nearest `package.json`. When `app.author` is missing, it uses the app name so every platform receives valid package metadata.
 
 ## Choose a directory
 

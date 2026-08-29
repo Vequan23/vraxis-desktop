@@ -42,6 +42,7 @@ export async function packageDesktopApp(config: ResolvedDesktopConfig, options: 
     await writeFile(resolve(stage, "package.json"), `${JSON.stringify({
       name: config.app.id,
       productName: config.app.name,
+      author: config.app.author ?? config.app.name,
       version: config.app.version,
       type: "module",
       main: "dist/runtime/main.js",
