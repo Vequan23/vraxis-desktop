@@ -14,6 +14,7 @@ let mainWindow: BrowserWindow | null = null;
 let runningService: RunningService | null = null;
 let activeConfig: ResolvedDesktopConfig | null = null;
 let nativeBridgeRegistered = false;
+let quitStarted = false;
 
 async function loadPackagedConfig(): Promise<ResolvedDesktopConfig> {
   const developmentPath = process.env.VRAXIS_DESKTOP_CONFIG;
@@ -108,8 +109,17 @@ async function createWindow(config: ResolvedDesktopConfig): Promise<void> {
     ) as boolean;
     if (!directoryPickerReady) throw new Error("The native directory picker bridge was not available to the desktop window.");
     console.log(`[desktop:smoke] ${JSON.stringify({ title, url: mainWindow.webContents.getURL(), serviceHealthy, directoryPickerReady })}`);
-    app.quit();
+    await quitApplication();
   }
+}
+
+async function quitApplication(): Promise<void> {
+  if (quitStarted) return;
+  quitStarted = true;
+  const service = runningService;
+  runningService = null;
+  if (service) await service.stop();
+  app.exit(0);
 }
 
 function registerNativeBridge(): void {
@@ -185,7 +195,11 @@ else {
     try { await createWindow(await loadPackagedConfig()); }
     catch (error) { await showStartupError(error); }
   });
-  app.on("before-quit", () => { if (runningService) void runningService.stop(); });
+  app.on("before-quit", event => {
+    if (quitStarted || !runningService) return;
+    event.preventDefault();
+    void quitApplication();
+  });
   app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
   app.on("activate", () => { if (!BrowserWindow.getAllWindows().length) void loadPackagedConfig().then(createWindow).catch(showStartupError); });
 }
