@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, protocol, session, shell } from "electron";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, extname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ResolvedDesktopConfig } from "../types.js";
@@ -108,18 +108,27 @@ async function createWindow(config: ResolvedDesktopConfig): Promise<void> {
       true,
     ) as boolean;
     if (!directoryPickerReady) throw new Error("The native directory picker bridge was not available to the desktop window.");
-    console.log(`[desktop:smoke] ${JSON.stringify({ title, url: mainWindow.webContents.getURL(), serviceHealthy, directoryPickerReady })}`);
-    await quitApplication();
+    const result = { title, url: mainWindow.webContents.getURL(), serviceHealthy, directoryPickerReady };
+    await stopRunningService();
+    const marker = process.env.VRAXIS_DESKTOP_SMOKE_FILE;
+    if (marker) await writeFile(marker, `${JSON.stringify(result)}\n`, "utf8");
+    console.log(`[desktop:smoke] ${JSON.stringify(result)}`);
+    quitStarted = true;
+    app.exit(0);
   }
 }
 
 async function quitApplication(): Promise<void> {
   if (quitStarted) return;
   quitStarted = true;
+  await stopRunningService();
+  app.exit(0);
+}
+
+async function stopRunningService(): Promise<void> {
   const service = runningService;
   runningService = null;
   if (service) await service.stop();
-  app.exit(0);
 }
 
 function registerNativeBridge(): void {

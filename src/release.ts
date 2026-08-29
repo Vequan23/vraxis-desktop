@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
-import { cp, mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, resolve } from "node:path";
 import { notarize } from "@electron/notarize";
@@ -86,26 +86,42 @@ export async function smokeTestPackagedApp(packageRoot: string, config: Resolved
     : platform === "win32"
       ? resolve(packageRoot, `${config.app.id}.exe`)
       : resolve(packageRoot, config.app.id);
-  await new Promise<void>((resolveTest, reject) => {
-    const child = spawn(executable, smokeTestLaunchArgs(platform), { env: { ...process.env, VRAXIS_DESKTOP_SMOKE: "1" }, stdio: ["ignore", "pipe", "pipe"] });
-    let output = "";
-    let settled = false;
-    const finish = (error?: Error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (child.exitCode === null) child.kill("SIGTERM");
-      error ? reject(error) : resolveTest();
-    };
-    child.stdout?.on("data", chunk => { output += String(chunk); });
-    child.stderr?.on("data", chunk => { output += String(chunk); });
-    child.once("error", error => finish(error));
-    child.once("exit", code => {
-      if (code === 0 && output.includes("[desktop:smoke]")) finish();
-      else finish(new Error(`The packaged app failed its smoke test.${output.trim() ? `\n${output.trim()}` : ""}`));
+  const markerPath = resolve(tmpdir(), `vraxis-desktop-smoke-${randomUUID()}.json`);
+  try {
+    await new Promise<void>((resolveTest, reject) => {
+      const child = spawn(executable, smokeTestLaunchArgs(platform), { env: { ...process.env, VRAXIS_DESKTOP_SMOKE: "1", VRAXIS_DESKTOP_SMOKE_FILE: markerPath }, stdio: ["ignore", "pipe", "pipe"] });
+      let output = "";
+      let settled = false;
+      let markerTimer: NodeJS.Timeout;
+      let timer: NodeJS.Timeout;
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        clearInterval(markerTimer);
+        if (child.exitCode === null) child.kill("SIGTERM");
+        error ? reject(error) : resolveTest();
+      };
+      child.stdout?.on("data", chunk => { output += String(chunk); });
+      child.stderr?.on("data", chunk => { output += String(chunk); });
+      child.once("error", error => finish(error));
+      child.once("exit", async code => {
+        if (code === 0 && (output.includes("[desktop:smoke]") || await smokeMarkerExists(markerPath))) finish();
+        else finish(new Error(`The packaged app failed its smoke test.${output.trim() ? `\n${output.trim()}` : ""}`));
+      });
+      markerTimer = setInterval(() => { void smokeMarkerExists(markerPath).then(ready => { if (ready) finish(); }); }, 100);
+      timer = setTimeout(() => finish(new Error(`The packaged app did not finish its smoke test within ${timeoutMs}ms.${output.trim() ? `\n${output.trim()}` : ""}`)), timeoutMs);
     });
-    const timer = setTimeout(() => finish(new Error(`The packaged app did not finish its smoke test within ${timeoutMs}ms.${output.trim() ? `\n${output.trim()}` : ""}`)), timeoutMs);
-  });
+  } finally {
+    await rm(markerPath, { force: true });
+  }
+}
+
+async function smokeMarkerExists(path: string): Promise<boolean> {
+  try {
+    const result = JSON.parse(await readFile(path, "utf8")) as { serviceHealthy?: unknown; directoryPickerReady?: unknown };
+    return result.serviceHealthy === true && result.directoryPickerReady === true;
+  } catch { return false; }
 }
 
 export function smokeTestTimeout(config: ResolvedDesktopConfig): number {
