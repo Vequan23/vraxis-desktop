@@ -133,6 +133,8 @@ The packaged app runs the entry file with Electron's Node runtime. Users do not 
 
 The service starts from its bundled directory. Relative paths to UI files and other resources continue to work.
 
+On macOS and Linux, the service PATH also includes `$HOME/.local/bin`. Desktop apps can discover user-installed CLIs such as Claude Code and Cursor Agent even when Finder launches the app with a minimal system PATH.
+
 ## Run an installed command
 
 Use `{port}` when your app needs a free loopback port:

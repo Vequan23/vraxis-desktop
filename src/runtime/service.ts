@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:net";
-import { isAbsolute, resolve } from "node:path";
+import { delimiter, isAbsolute, join, resolve } from "node:path";
 import type { ServiceSource } from "../types.js";
 
 export interface RunningService {
@@ -17,14 +17,29 @@ export interface ServiceRuntimeOptions {
   electronRunAsNode?: boolean;
 }
 
+export function serviceEnvironment(
+  source: ServiceSource,
+  port: number,
+  ambient: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  const replacePort = (value: string) => value.replaceAll("{port}", String(port));
+  const environment: NodeJS.ProcessEnv = {};
+  for (const name of safeEnvironmentNames) if (ambient[name] !== undefined) environment[name] = ambient[name];
+  if (process.platform !== "win32" && environment.HOME) {
+    const entries = (environment.PATH ?? "").split(delimiter).filter(Boolean);
+    const userBin = join(environment.HOME, ".local", "bin");
+    environment.PATH = [...new Set([...entries, userBin])].join(delimiter);
+  }
+  for (const name of source.environment?.inherit ?? []) if (ambient[name] !== undefined) environment[name] = ambient[name];
+  for (const [name, value] of Object.entries(source.environment?.set ?? {})) environment[name] = replacePort(value);
+  environment[source.portEnvironment ?? "PORT"] = String(port);
+  return environment;
+}
+
 export async function startService(source: ServiceSource, options: ServiceRuntimeOptions = {}): Promise<RunningService> {
   const port = source.port || await openPort();
   const replacePort = (value: string) => value.replaceAll("{port}", String(port));
-  const environment: NodeJS.ProcessEnv = {};
-  for (const name of safeEnvironmentNames) if (process.env[name] !== undefined) environment[name] = process.env[name];
-  for (const name of source.environment?.inherit ?? []) if (process.env[name] !== undefined) environment[name] = process.env[name];
-  for (const [name, value] of Object.entries(source.environment?.set ?? {})) environment[name] = replacePort(value);
-  environment[source.portEnvironment ?? "PORT"] = String(port);
+  const environment = serviceEnvironment(source, port);
   const accessToken = source.authentication === "desktop-token" ? randomBytes(32).toString("base64url") : "";
   if (accessToken) environment.VRAXIS_DESKTOP_TOKEN = accessToken;
   let command: string;

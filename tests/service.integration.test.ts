@@ -1,10 +1,38 @@
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { startService } from "../src/runtime/service.js";
+import { serviceEnvironment, startService } from "../src/runtime/service.js";
 
 describe("local service hosting", () => {
+  it("adds the standard user CLI directory to service PATH on macOS and Linux", () => {
+    const originalPath = ["/usr/bin", "/bin"];
+    const environment = serviceEnvironment({
+      kind: "service",
+      command: "reader",
+      url: "http://127.0.0.1:{port}",
+    }, 4400, {
+      HOME: "/Users/reader",
+      PATH: originalPath.join(delimiter),
+    });
+
+    const expected = process.platform === "win32" ? originalPath : [...originalPath, join("/Users/reader", ".local", "bin")];
+    expect(environment.PATH?.split(delimiter)).toEqual(expected);
+  });
+
+  it("does not duplicate an existing user CLI directory", () => {
+    const environment = serviceEnvironment({
+      kind: "service",
+      command: "reader",
+      url: "http://127.0.0.1:{port}",
+    }, 4400, {
+      HOME: "/Users/reader",
+      PATH: ["/usr/bin", join("/Users/reader", ".local", "bin")].join(delimiter),
+    });
+
+    expect(environment.PATH?.split(delimiter)).toEqual(["/usr/bin", join("/Users/reader", ".local", "bin")]);
+  });
+
   it("selects a port, waits for health, and stops the owned service", async () => {
     const script = `const http=require('http');const port=Number(process.env.PORT);http.createServer((req,res)=>{res.writeHead(200,{'content-type':'application/json'});res.end('{"ok":true}')}).listen(port,'127.0.0.1')`;
     const service = await startService({
